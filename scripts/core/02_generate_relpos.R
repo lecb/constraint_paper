@@ -199,14 +199,13 @@ ENSEMBL_UA   <- "constraint-paper/1.0 (ellie)"
     if (!is.null(res) && code == 200L) {
       txt <- httr::content(res, "text", encoding = "UTF-8")
       return(structure(NULL, class="ensembl_null"))
-, error = function(e) NULL))
     }
     
     transient <- is.na(code) || code %in% c(408, 429, 500, 502, 503, 504)
     if (!transient) {
       if (!quiet) message("HTTP ", code, ": ", url)
       return(structure(NULL, class="ensembl_null"))
-, class = "ensembl_null"))
+
     }
     
     if (!quiet) message("Retry ", attempt, "/", max_tries, " (HTTP ", code, "): ", url)
@@ -225,13 +224,15 @@ vep_region_post <- function(variants) {
     "?protein=1",
     "&canonical=1",
     "&hgvs=1"
-  
+  )
+
   .request_json(
     "POST", url,
     body = list(variants = variants),
     timeout = 180, connecttimeout = 30,
     max_tries = 6, max_elapsed = 900,
     quiet = FALSE
+  )
 }
 
 # Ensembl lookup for translation lengths (protein_id => length)
@@ -309,11 +310,11 @@ extract_canonical_hit <- function(rec) {
 # checkpoint helpers
 recover_vep_checkpoint <- function(path) {
   if (!file.exists(path)) return(structure(NULL, class="ensembl_null"))
-, rel_tbl = tibble::tibble(protein_id=character(0), aa_pos=numeric(0))))
+
   ck <- readRDS(path)
   if (!is.list(ck) || is.null(ck$done) || is.null(ck$rel_tbl)) {
     return(structure(NULL, class="ensembl_null"))
-, rel_tbl = tibble::tibble(protein_id=character(0), aa_pos=numeric(0))))
+
   }
   ck$rel_tbl <- tibble::as_tibble(ck$rel_tbl)
   if (!all(c("protein_id","aa_pos") %in% names(ck$rel_tbl))) {
@@ -364,9 +365,8 @@ awk_cmd <- sprintf(
   gene_col_idx,
   shQuote(tmp_genes),
   shQuote(GNOMAD_LOF_BGZ)
-
+)
 cmd <- sprintf("bash -lc %s", shQuote(awk_cmd))
-
 gn <- readr::read_tsv(pipe(cmd), show_col_types = FALSE, progress = TRUE)
 
 message("[bgz] Filtered rows (universe genes): ", nrow(gn))
@@ -440,6 +440,7 @@ for (i in seq(1, length(vep_vars), by = VEP_BATCH)) {
       tibble::tibble(
         protein_id = vapply(picks, `[[`, character(1), "protein_id"),
         aa_pos      = vapply(picks, `[[`, numeric(1), "aa_pos")
+      ))
   }
   
   done[idx] <- TRUE
@@ -507,6 +508,7 @@ parse_vep_key <- function(v) {
     pos   = suppressWarnings(as.integer(parts[2])),
     ref   = parts[4],
     alt   = parts[5]
+  )
 }
 
 # Build a table of (chrom,pos,ref,alt) in same order as VEP hits.
@@ -551,7 +553,7 @@ if (!FORCE_RECOMPUTE && file.exists(MAP_RDS)) {
     alt   = character(0),
     protein_id = character(0),
     aa_pos = numeric(0)
-  
+  )
   done2 <- rep(FALSE, length(vep_vars))
   VEP_BATCH2 <- if (interactive()) 80L else 200L
   
@@ -579,6 +581,7 @@ if (!FORCE_RECOMPUTE && file.exists(MAP_RDS)) {
         alt   = as.character(parts[5]),
         protein_id = as.character(hit$protein_id),
         aa_pos = as.numeric(hit$aa_pos)
+    )
     }
     
     if (length(rows) > 0) vep_map <- bind_rows(vep_map, bind_rows(rows))
@@ -620,7 +623,7 @@ trunc_pdn <- vep_map %>%
     rel_pos = as.numeric(rel_pos),
     group = ifelse(geneU %in% disc35, "Discordant", "Background"),
     pos_bin = bin_relpos(rel_pos)
-
+  )
 message("[relpos] Final trunc_pdn rows: ", nrow(trunc_pdn))
 print(table(trunc_pdn$group))
 
@@ -640,7 +643,7 @@ summ <- trunc_pdn %>%
     late = sum(pos_bin == "late", na.rm = TRUE),
     prop_late = late / pmax(1, early + middle + late),
     .groups = "drop"
-
+  )
 readr::write_csv(summ, OUT_TRUNC_PDN_SUMMARY)
 message("Wrote: ", OUT_TRUNC_PDN_SUMMARY)
 
