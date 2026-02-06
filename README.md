@@ -1,137 +1,136 @@
-Constraint does not equal penetrance
+Constraint paper pipeline
 
-Reproducible analysis pipeline
-
-This repository contains the full reproducible analysis pipeline used for the manuscript:
-
+Reproducible analysis pipeline for the manuscript
 “Constraint does not equal penetrance: population loss-of-function variation in ultra-constrained human genes.”
 
-The pipeline processes gnomAD constraint and variant data, performs downstream analyses, generates all manuscript figures and tables, and collects them into a single output directory.
+This repository contains the full R pipeline used to generate all main figures and tables for the manuscript.
 
-Overview
-
-Running the pipeline will automatically:
-
-Build the ultra-constrained gene universe
-
-Generate truncation position and NMD analyses
-
-Perform pext expression analyses
-
-Run robustness and sensitivity analyses
-
-Generate all main and supplementary figures
-
-Collect all outputs into a single directory
-
-Final outputs appear in:
-
-final/figures/
-final/tables/
-
-Requirements
-
-Tested on:
-
-macOS and Linux
-
-R ≥ 4.3 (recommended 4.4+)
-
-All R packages are installed automatically via renv.
-
-Quick start (from a clean machine)
-1) Clone the repository
-git clone https://github.com/YOUR_USERNAME/constraint-paper.git
-cd constraint-paper
-
-2) Install R dependencies
-Rscript -e 'install.packages("renv"); renv::restore()'
-
-
-This installs the exact package versions used to generate the manuscript.
-
-3) Prepare required input data
-
-Due to size and licensing, large gnomAD-derived inputs are not included in the repository.
-
-Create the input directory:
-
-mkdir -p data/gnomad
-
-
-Place the following files in the repository root (or symlink them):
-
-File	Description
-gnomad.v4.1.constraint_metrics.tsv	gnomAD v4.1 constraint metrics
-gnomad_variants_all.csv	Pre-extracted gnomAD pLoF variants
-trunc_position_domain_nmd_variants.csv	Truncating variant positional/NMD annotations
-
-These are the only required external inputs to run the pipeline.
-
-4) Run the full pipeline
+TL;DR — run everything
+git clone git@github.com:lecb/constraint_paper.git
+cd constraint_paper
+Rscript -e 'options(repos=c(CRAN="https://cloud.r-project.org")); install.packages("renv"); renv::restore()'
+bash scripts/bootstrap_inputs.sh
 Rscript scripts/run_all.R
 
 
-The pipeline uses caching, so reruns are fast.
+Final outputs appear in:
 
-Output
+final/figures
+final/tables
 
-After completion, all outputs are collected into:
+Contents
+
+Quick start
+
+Required inputs
+
+Running the pipeline
+
+Outputs
+
+Reproducibility
+
+Repository layout
+
+Troubleshooting
+
+Quick start
+1) Clone the repository
+git clone git@github.com:lecb/constraint_paper.git
+cd constraint_paper
+
+2) Restore the R environment (renv)
+
+This project uses renv to lock package versions.
+
+Rscript -e 'options(repos=c(CRAN="https://cloud.r-project.org")); install.packages("renv"); renv::restore()'
+
+
+This installs the exact R package versions used in the paper.
+
+Required inputs
+
+Large data files are not included in the repository due to size/licensing.
+
+The pipeline expects the following files in the repo root:
+
+gnomad.v4.1.constraint_metrics.tsv
+gnomad_variants_all.csv
+trunc_position_domain_nmd_variants.csv
+
+
+To help users, a bootstrap script is provided:
+
+bash scripts/bootstrap_inputs.sh
+
+
+You may instead symlink your own local copies.
+
+Running the pipeline
+
+Run the full cached pipeline:
+
+Rscript scripts/run_all.R
+
+
+Force recompute all steps:
+
+FORCE_RECOMPUTE=TRUE Rscript scripts/run_all.R
+
+Outputs
+
+At the end of the run, all figures and tables are collected into:
 
 final/
 ├── figures/
 └── tables/
 
 
-This directory contains all figures and tables required for the manuscript.
+Intermediate outputs may also appear in:
 
-Re-running the pipeline
-
-Force a complete rebuild:
-
-FORCE_RECOMPUTE=TRUE Rscript scripts/run_all.R
-
-Repository structure
-scripts/
-  core/        → core analysis scripts
-  run_all.R    → main pipeline entrypoint
-
-figures/       → intermediate figures
-tables/        → intermediate tables
-cache/         → cached objects
-
-final/         → collected outputs (figures + tables)
-
-
-The pipeline automatically:
-
-Runs all core analyses
-
-Generates manuscript figures
-
-Collects outputs into a single directory
+figures/
+tables/
+manuscript_figures/
+cache/
+logs/
 
 Reproducibility
 
-This repository ensures reproducibility via:
+This project is designed for full computational reproducibility.
 
-deterministic caching
+R package versions are pinned in renv.lock
 
-pinned R package versions (renv)
+The pipeline is deterministic given fixed inputs and seeds
 
-scripted figure generation
+All analyses can be regenerated with a single command
 
-single-command execution
+Repository layout
+scripts/
+  run_all.R                     Main pipeline entrypoint
+  core/                         Paper-critical scripts
+  optional/                     Additional analyses (not run by default)
+  _legacy/                      Archived historical scripts
 
-Running the pipeline from scratch reproduces all outputs.
+renv.lock                       Pinned R package environment
+renv/                           renv infrastructure
+final/                          Collected outputs (after pipeline run)
 
-Running the pipeline in practice
+Troubleshooting
+“Package was built under R version …”
 
-Typical workflow:
+These warnings are normal and safe to ignore.
 
-git pull
-Rscript scripts/run_all.R
+Missing input files
 
-Contact
+Confirm required files exist (see Required inputs section).
 
-For questions about the pipeline or manuscript, please contact the corresponding author.
+Pipeline finishes but outputs are missing
+
+Check the final collection script:
+
+scripts/core/99_collect_outputs.sh
+
+Citation
+
+If you use this code, please cite the associated manuscript.
+Full citation details will be added upon publication.
