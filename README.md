@@ -5,7 +5,6 @@ Reproducible analysis pipeline for the manuscript
 
 This repository contains the full R pipeline used to generate all main figures and tables for the manuscript.
 
-TL;DR — run everything
 git clone git@github.com:lecb/constraint_paper.git
 cd constraint_paper
 Rscript -e 'options(repos=c(CRAN="https://cloud.r-project.org")); install.packages("renv"); renv::restore()'
