@@ -11,7 +11,6 @@ suppressPackageStartupMessages({
 })
 
 
-
 # ============================================================
 # 01_generate_relpos.R (CLEAN, SELF-CONTAINED)
 #
@@ -75,7 +74,8 @@ GNOMAD_LOF_BGZ <- {
   candidates <- candidates[nzchar(candidates)]
   hit <- candidates[file.exists(candidates)][1]
   if (is.na(hit)) stop("Could not find gnomad.v2.1.1.all_lofs.txt.bgz. Tried: ", paste(candidates, collapse=" | "))
-  invisible(hit)}
+  invisible(hit)
+}
 stopifnot(file.exists(GNOMAD_LOF_BGZ))
 
 
@@ -178,6 +178,7 @@ ENSEMBL_UA   <- "constraint-paper/1.0 (ellie)"
     
     if (as.numeric(difftime(Sys.time(), t0, units = "secs")) > max_elapsed) {
       if (!quiet) message("ABORT (elapsed>", max_elapsed, "s): ", url)
+  return(ensembl_null())
     }
     
     res <- tryCatch({
@@ -210,6 +211,7 @@ ENSEMBL_UA   <- "constraint-paper/1.0 (ellie)"
     if (!transient) {
       if (!quiet) message("HTTP ", code, ": ", url)
 
+  return(ensembl_null())
     }
     
     if (!quiet) message("Retry ", attempt, "/", max_tries, " (HTTP ", code, "): ", url)
