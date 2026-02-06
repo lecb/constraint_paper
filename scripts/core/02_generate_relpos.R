@@ -10,6 +10,8 @@ suppressPackageStartupMessages({
   library(jsonlite)
 })
 
+
+
 # ============================================================
 # 01_generate_relpos.R (CLEAN, SELF-CONTAINED)
 #
@@ -73,14 +75,13 @@ GNOMAD_LOF_BGZ <- {
   candidates <- candidates[nzchar(candidates)]
   hit <- candidates[file.exists(candidates)][1]
   if (is.na(hit)) stop("Could not find gnomad.v2.1.1.all_lofs.txt.bgz. Tried: ", paste(candidates, collapse=" | "))
-  hit
-}
+  invisible(hit)}
 stopifnot(file.exists(GNOMAD_LOF_BGZ))
 
 
 message("[DEBUG] GNOMAD_LOF_BGZ resolved to: ", GNOMAD_LOF_BGZ)
 message("[DEBUG] exists? ", file.exists(GNOMAD_LOF_BGZ))
-message("[DEBUG] readable? ", file.access(GNOMAD_LOF_BGZ, 4))
+message("[DEBUG] readable? ", file.access(GNOMAD_LOF_BGZ, 4) == 0)
 # ----------------------------
 # OUTPUTS + CACHE DIR
 # ----------------------------
@@ -143,6 +144,8 @@ invisible(NULL)
 # ============================================================
 `%||%` <- function(a, b) if (is.null(a)) b else a
 
+ensembl_null <- function() structure(list(), class = "ensembl_null")
+
 bin_relpos <- function(r) {
   dplyr::case_when(
     is.na(r) ~ NA_character_,
@@ -175,7 +178,6 @@ ENSEMBL_UA   <- "constraint-paper/1.0 (ellie)"
     
     if (as.numeric(difftime(Sys.time(), t0, units = "secs")) > max_elapsed) {
       if (!quiet) message("ABORT (elapsed>", max_elapsed, "s): ", url)
-      return(structure(NULL, class="ensembl_null"))
     }
     
     res <- tryCatch({
@@ -198,13 +200,15 @@ ENSEMBL_UA   <- "constraint-paper/1.0 (ellie)"
     
     if (!is.null(res) && code == 200L) {
       txt <- httr::content(res, "text", encoding = "UTF-8")
-      return(structure(NULL, class="ensembl_null"))
+      if (!nzchar(txt)) return(ensembl_null())
+      js <- tryCatch(jsonlite::fromJSON(txt, simplifyVector = FALSE), error = function(e) NULL)
+      if (is.null(js)) return(ensembl_null())
+      return(js)
     }
     
     transient <- is.na(code) || code %in% c(408, 429, 500, 502, 503, 504)
     if (!transient) {
       if (!quiet) message("HTTP ", code, ": ", url)
-      return(structure(NULL, class="ensembl_null"))
 
     }
     
@@ -213,7 +217,6 @@ ENSEMBL_UA   <- "constraint-paper/1.0 (ellie)"
   }
   
   if (!quiet) message("Failed after retries: ", url)
-  structure(list(), class = "ensembl_null")
 }
 
 # VEP region endpoint (GRCh37)
@@ -248,7 +251,7 @@ lookup_lengths_bulk <- function(ids, cache_env, batch = 1500L) {
   ids <- ids[nchar(ids) > 0]
   ids <- ids[grepl("^ENSP[0-9]+$", ids)]
   ids <- ids[!vapply(ids, function(x) exists(x, envir = cache_env, inherits = FALSE), logical(1))]
-  if (length(ids) == 0) return(structure(NULL, class="ensembl_null"))
+  if (length(ids) == 0) return(invisible(NULL))
 
   
   url <- paste0(ENSEMBL_BASE, "/lookup/id")
@@ -272,36 +275,59 @@ lookup_lengths_bulk <- function(ids, cache_env, batch = 1500L) {
 }
 
 get_translation_length_cached <- function(ensp_id, cache_env) {
-  ensp <- sub("\\..*$", "", as.character(ensp_id))
-  if (is.na(ensp) || ensp == "") return(structure(NULL, class="ensembl_null"))
-  if (exists(ensp, envir = cache_env, inherits = FALSE)) return(structure(NULL, class="ensembl_null"))
+  # Always return length-1 numeric (NA_real_ on failure)
+  if (is.null(ensp_id) || is.na(ensp_id) || !nzchar(as.character(ensp_id))) return(NA_real_)
 
-  NA_real_
+  pid <- sub("\\..*$", "", as.character(ensp_id))
+
+  # cache hit
+  if (exists(pid, envir = cache_env, inherits = FALSE)) {
+    v <- get(pid, envir = cache_env, inherits = FALSE)
+    v <- suppressWarnings(as.numeric(v))
+    if (length(v) != 1 || !is.finite(v) || v <= 0) return(NA_real_)
+    return(v)
+  }
+
+  # Ensembl single-id lookup
+  url <- paste0(ENSEMBL_BASE, "/lookup/id/", pid, "?expand=1")
+  js <- .request_json("GET", url, quiet = TRUE)
+
+  if (is.null(js) || inherits(js, "ensembl_null") || length(js) == 0) {
+    assign(pid, NA_real_, envir = cache_env)
+    return(NA_real_)
+  }
+
+  len <- NA_real_
+  if (!is.null(js$length)) len <- suppressWarnings(as.numeric(js$length))
+  if (length(len) != 1 || !is.finite(len) || len <= 0) len <- NA_real_
+
+  assign(pid, len, envir = cache_env)
+  return(len)
 }
 
 canonical_flag <- function(x) {
-  if (is.null(x)) return(structure(NULL, class="ensembl_null"))
-  if (is.logical(x)) return(structure(NULL, class="ensembl_null"))
+  # Always return length-1 logical; default FALSE
+  if (is.null(x) || length(x) == 0 || is.na(x)[1]) return(FALSE)
+  if (is.logical(x)) return(isTRUE(x[1]))
 
-  x <- toupper(as.character(x))
+  x <- toupper(as.character(x[1]))
   x %in% c("1", "TRUE", "YES", "Y")
 }
 
 extract_canonical_hit <- function(rec) {
   tcs <- rec$transcript_consequences
-  if (is.null(tcs) || length(tcs) == 0) return(structure(NULL, class="ensembl_null"))
-  
+  if (is.null(tcs) || length(tcs) == 0) return(NULL)
+
   ord <- order(vapply(tcs, function(tc) canonical_flag(tc$canonical), logical(1)), decreasing = TRUE)
   tcs <- tcs[ord]
-  
+
   for (tc in tcs) {
     pid <- as.character(tc$protein_id %||% "")
-    aa  <- suppressWarnings(as.numeric(tc$protein_start %||% NA))
-    
+    aa  <- suppressWarnings(as.numeric(tc$protein_start %||% NA_real_))
+
     if (nzchar(pid) && is.finite(aa)) {
       pid <- sub("\\..*$", "", pid)
-      return(structure(NULL, class="ensembl_null"))
-
+      return(list(protein_id = pid, aa_pos = aa))
     }
   }
   NULL
@@ -309,11 +335,10 @@ extract_canonical_hit <- function(rec) {
 
 # checkpoint helpers
 recover_vep_checkpoint <- function(path) {
-  if (!file.exists(path)) return(structure(NULL, class="ensembl_null"))
+  if (!file.exists(path)) return(ensembl_null())
 
   ck <- readRDS(path)
   if (!is.list(ck) || is.null(ck$done) || is.null(ck$rel_tbl)) {
-    return(structure(NULL, class="ensembl_null"))
 
   }
   ck$rel_tbl <- tibble::as_tibble(ck$rel_tbl)
@@ -334,8 +359,8 @@ to_vep_variant <- function(chrom, pos, ref, alt, id = ".") {
   ref   <- as.character(ref)
   alt   <- as.character(alt)
   
-  if (!is.finite(pos) || pos <= 0) return(structure(NULL, class="ensembl_null"))
-  if (!nzchar(chrom) || !nzchar(ref) || !nzchar(alt)) return(structure(NULL, class="ensembl_null"))
+  if (!is.finite(pos) || pos <= 0) return(ensembl_null())
+  if (!nzchar(chrom) || !nzchar(ref) || !nzchar(alt)) return(ensembl_null())
   
   paste(chrom, pos, id, ref, alt, ".", ".", ".", sep = " ")
 }
@@ -463,7 +488,7 @@ if (nrow(rel_tbl) == 0) stop("VEP returned no usable canonical protein hits; can
 # 3) Translation lengths => rel_pos
 # ============================================================
 ids <- unique(rel_tbl$protein_id)
-lookup_lengths_bulk(ids, cache_env = txlen_cache, batch = 1500L)
+invisible(lookup_lengths_bulk(ids, cache_env = txlen_cache, batch = 1500L))
 try(saveRDS(as.list(txlen_cache), TXLEN_CACHE_RDS), silent = TRUE)
 
 prot_len <- vapply(rel_tbl$protein_id, function(pid) {
@@ -502,7 +527,7 @@ if (nrow(rel_tbl2) == 0) stop("No finite rel_pos could be computed after protein
 # Reconstruct variant key from vep string: "chrom pos id ref alt ..."
 parse_vep_key <- function(v) {
   parts <- strsplit(v, " ", fixed = TRUE)[[1]]
-  if (length(parts) < 5) return(structure(NULL, class="ensembl_null"))
+  if (length(parts) < 5) return(ensembl_null())
   tibble(
     chrom = parts[1],
     pos   = suppressWarnings(as.integer(parts[2])),
@@ -594,7 +619,7 @@ if (!FORCE_RECOMPUTE && file.exists(MAP_RDS)) {
 }
 
 # protein lengths for vep_map
-lookup_lengths_bulk(unique(vep_map$protein_id), cache_env = txlen_cache, batch = 1500L)
+invisible(lookup_lengths_bulk(unique(vep_map$protein_id), cache_env = txlen_cache, batch = 1500L))
 try(saveRDS(as.list(txlen_cache), TXLEN_CACHE_RDS), silent = TRUE)
 
 vep_map <- vep_map %>%
@@ -625,7 +650,8 @@ trunc_pdn <- vep_map %>%
     pos_bin = bin_relpos(rel_pos)
   )
 message("[relpos] Final trunc_pdn rows: ", nrow(trunc_pdn))
-print(table(trunc_pdn$group))
+trunc_pdn$group <- as.character(trunc_pdn$group)
+message("[relpos] group counts: ", paste(names(table(as.character(trunc_pdn$group))), as.integer(table(as.character(trunc_pdn$group))), sep="=", collapse=" | "))
 
 # write + cache
 readr::write_csv(trunc_pdn, OUT_TRUNC_PDN_VARIANTS)
