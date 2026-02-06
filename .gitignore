@@ -1,31 +1,57 @@
-# ---- R ----
+# macOS / R junk
+.DS_Store
 .Rhistory
 .RData
 .Rproj.user/
 
-# ---- macOS ----
-.DS_Store
+# renv local library (keep renv.lock + renv/infra only)
+renv/library/
 
-# ---- Large data ----
-data/
-clinvar/
-clinvar_bridge/
-gnomad_lof_discordance_out/
-tables__symlinks_*/
-
-# ---- Outputs / cache ----
+# Pipeline outputs (generated)
 cache/
-*.rds
-*.csv
-*.tsv
-*.gz
+logs/
+final/
+figures/
+tables/
+manuscript_figures/
+gnomad_lof_discordance_out/
+positional_tests_out/
 
-# ---- Backup / scratch ----
+# Large external inputs (not distributed)
+data/
+gnomad_variants_all.csv
+gnomad.v4.1.constraint_metrics.tsv
+trunc_position_domain_nmd_variants.csv
+nmd_heuristic_truncations.csv
+discordant_genes.rds
+Table1_final_main.csv
+
+# Temporary / backups
 *.bak
-*.broken*
-*.SAFETY*
-scripts/_legacy/
-scripts/optional/
+*.tmp
+*.swp
 
-# ---- Local config ----
-scripts/_config_paths.R
+# Debug artifacts
+DEBUG_*/
+DEBUG_*.csv
+DEBUG_*.rds
+
+# ClinVar downloads + caches
+clinvar/
+clinvar_bridge/cache_*.rds
+clinvar_bridge/*.vcf*
+clinvar_bridge/*.tbi
+clinvar_bridge/*.tsv
+clinvar_bridge/*.txt
+
+# pext large inputs / intermediates
+pext/*.gz
+pext/*.tsv
+pext/*.bgz
+
+# symlink snapshots / scratch
+tables__symlinks_*/
+*SAFETY*
+*.broken_*
+*.bak.*
+trunc_position_domain_nmd_summary_by_group.csv
