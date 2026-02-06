@@ -1,0 +1,31 @@
+# ---- R ----
+.Rhistory
+.RData
+.Rproj.user/
+
+# ---- macOS ----
+.DS_Store
+
+# ---- Large data ----
+data/
+clinvar/
+clinvar_bridge/
+gnomad_lof_discordance_out/
+tables__symlinks_*/
+
+# ---- Outputs / cache ----
+cache/
+*.rds
+*.csv
+*.tsv
+*.gz
+
+# ---- Backup / scratch ----
+*.bak
+*.broken*
+*.SAFETY*
+scripts/_legacy/
+scripts/optional/
+
+# ---- Local config ----
+scripts/_config_paths.R
