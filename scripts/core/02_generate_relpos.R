@@ -199,14 +199,14 @@ ENSEMBL_UA   <- "constraint-paper/1.0 (ellie)"
     if (!is.null(res) && code == 200L) {
       txt <- httr::content(res, "text", encoding = "UTF-8")
       return(structure(NULL, class="ensembl_null"))
-
+, error = function(e) NULL))
     }
     
     transient <- is.na(code) || code %in% c(408, 429, 500, 502, 503, 504)
     if (!transient) {
       if (!quiet) message("HTTP ", code, ": ", url)
       return(structure(NULL, class="ensembl_null"))
-
+, class = "ensembl_null"))
     }
     
     if (!quiet) message("Retry ", attempt, "/", max_tries, " (HTTP ", code, "): ", url)
@@ -309,11 +309,11 @@ extract_canonical_hit <- function(rec) {
 # checkpoint helpers
 recover_vep_checkpoint <- function(path) {
   if (!file.exists(path)) return(structure(NULL, class="ensembl_null"))
-
+, rel_tbl = tibble::tibble(protein_id=character(0), aa_pos=numeric(0))))
   ck <- readRDS(path)
   if (!is.list(ck) || is.null(ck$done) || is.null(ck$rel_tbl)) {
     return(structure(NULL, class="ensembl_null"))
-
+, rel_tbl = tibble::tibble(protein_id=character(0), aa_pos=numeric(0))))
   }
   ck$rel_tbl <- tibble::as_tibble(ck$rel_tbl)
   if (!all(c("protein_id","aa_pos") %in% names(ck$rel_tbl))) {
