@@ -1,4 +1,3 @@
-cat > README.md <<'MD'
 # Constraint paper pipeline
 
 Reproducible analysis pipeline for the manuscript:  
@@ -16,103 +15,123 @@ cd constraint_paper
 Rscript -e 'options(repos=c(CRAN="https://cloud.r-project.org")); install.packages("renv"); renv::restore()'
 bash scripts/bootstrap_inputs.sh
 Rscript scripts/run_all.R
+```
+
 Final outputs appear in:
 
+```
 final/figures
 final/tables
-Contents
-Required inputs
+```
 
-Running the pipeline
+---
 
-Outputs
+## Contents
+- Required inputs
+- Running the pipeline
+- Outputs
+- Reproducibility
+- Repository layout
+- Troubleshooting
+- Citation
 
-Reproducibility
+---
 
-Repository layout
+## Required inputs
 
-Troubleshooting
+Large datasets are not committed to the repository (size/licensing).  
+The pipeline expects the following files in the repo root:
 
-Required inputs
-Large datasets are not committed to the repository (size/licensing). The pipeline expects the following files in the repo root:
-
-gnomad.v4.1.constraint_metrics.tsv
-
-gnomad_variants_all.csv
-
-trunc_position_domain_nmd_variants.csv
+- gnomad.v4.1.constraint_metrics.tsv
+- gnomad_variants_all.csv
+- trunc_position_domain_nmd_variants.csv
 
 Helper script:
 
+```bash
 bash scripts/bootstrap_inputs.sh
+```
+
 You may also symlink local copies.
 
-Running the pipeline
+---
+
+## Running the pipeline
+
 Run the cached pipeline:
 
+```bash
 Rscript scripts/run_all.R
+```
+
 Force recomputation:
 
+```bash
 FORCE_RECOMPUTE=TRUE Rscript scripts/run_all.R
-Outputs
+```
+
+---
+
+## Outputs
+
 All figures and tables are collected into:
 
+```text
 final/
 ├── figures/
 └── tables/
+```
+
 Intermediate artefacts may also appear in:
 
-cache/
+- cache/
+- logs/
+- figures/
+- tables/
+- manuscript_figures/
 
-logs/
+---
 
-figures/
+## Reproducibility
 
-tables/
-
-manuscript_figures/
-
-Reproducibility
 This project uses renv to pin package versions via renv.lock.
 
 Restore the environment:
 
+```r
 renv::restore()
-Repository layout
-scripts/
-  run_all.R                     Main pipeline entrypoint
-  core/                         Paper-critical analyses
-  optional/                     Additional analyses (not run by default)
-  _legacy/                      Archived development scripts
-
-renv.lock                        Pinned R package environment
-renv/                            renv infrastructure
-Troubleshooting
-“package … was built under R version …”
-These warnings are expected and usually safe to ignore.
-
-Push rejected / remote changed
-If GitHub says “fetch first”, do:
-
-git pull --rebase origin main
-git push
-Citation
-If you use this code, please cite the associated manuscript. Citation details will be added upon publication.
-MD
-
-
-(If you see `heredoc>` again, it means the ending `MD` didn’t paste correctly; tell me and we’ll do it via `nano`.)
+```
 
 ---
 
-## 2) Commit the README change
+## Repository layout
+
+```text
+scripts/
+  run_all.R                      Main pipeline entrypoint
+  core/                          Paper-critical analyses
+  optional/                      Additional analyses (not run by default)
+  _legacy/                       Archived development scripts
+
+renv.lock                         Pinned R package environment
+renv/                             renv infrastructure
+```
+
+---
+
+## Troubleshooting
+
+"package … was built under R version …" warnings are expected and usually safe to ignore.
+
+If GitHub says "fetch first", run:
 
 ```bash
-git add README.md
-git commit -m "Format README as Markdown"
-3) Fix your remote divergence, then push
-Because your remote has a commit you don’t have locally:
-
 git pull --rebase origin main
 git push
-That will update GitHub and your README will render properly.
+```
+
+---
+
+## Citation
+
+If you use this code, please cite the associated manuscript.
