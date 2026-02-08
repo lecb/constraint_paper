@@ -81,6 +81,42 @@ run_step <- function(name, rel_script_path, outputs = character(), optional = FA
   invisible(ok)
 }
 
+run_rscript_step <- function(name, rel_script_path, args = character(), outputs = character(), optional = FALSE) {
+  script_path <- file.path(ROOT, "scripts", rel_script_path)
+  if (!file.exists(script_path)) {
+    msg <- paste0("[run_all] Missing script: ", rel_script_path)
+    if (optional) { message(msg, " (skip)"); return(invisible(FALSE)) }
+    stop(msg)
+  }
+
+  if (!should_run(outputs)) {
+    message("\n[run_all] Skip: ", name, " (outputs exist)")
+    return(invisible(TRUE))
+  }
+
+  message("\n[run_all] Running (Rscript): ", name, " -> ", rel_script_path)
+
+  cmd_args <- c(script_path, args)
+  status <- suppressWarnings(system2("Rscript", cmd_args, stdout = "", stderr = ""))
+
+  if (!is.null(status) && status != 0) {
+    msg <- paste0("[run_all] ERROR in ", name, ": Rscript exited non-zero")
+    if (optional) { message(msg); return(invisible(FALSE)) }
+    stop(msg)
+  }
+
+  if (length(outputs)) {
+    missing <- outputs[!file.exists(outputs)]
+    if (length(missing)) {
+      msg <- paste0("[run_all] WARNING: step ran but some outputs missing for ", name,
+                    ":\n  - ", paste(missing, collapse = "\n  - "))
+      if (optional) message(msg) else stop(msg)
+    }
+  }
+
+  invisible(TRUE)
+}
+
 # ----------------------------
 # Core steps (paper-critical)
 # ----------------------------
@@ -98,8 +134,8 @@ run_step(
   rel_script_path = "core/02_generate_relpos.R",
   outputs = c(
     "cache/trunc_pdn_cache.rds",
-    "trunc_position_domain_nmd_variants.csv",
-    "trunc_position_domain_nmd_summary_by_group.csv"
+    "gnomad_lof_discordance_out/trunc_position_domain_nmd_variants.csv",
+    "gnomad_lof_discordance_out/trunc_position_domain_nmd_summary_by_group.csv"
   )
 )
 
@@ -138,6 +174,25 @@ run_step(
   outputs = c(
     "manuscript_figures/main/Figure2_discordant_vs_rest.png",
     "manuscript_figures/main/SuperFig_discordant_summary.png"
+  )
+)
+
+run_rscript_step(
+  name = "LAS modelling (SuppFig LAS 2-panel)",
+  rel_script_path = "core/10_LAS_model_from_trunc_position_table.R",
+  args = c(
+    "--variants", "gnomad_lof_discordance_out/trunc_position_domain_nmd_variants.csv",
+    "--outdir", "results/las",
+    "--seed", "1",
+    "--folds", "5"
+  ),
+  outputs = c(
+    "figures/SuppFig_LAS_model_2panel.png",
+    "figures/SuppFig_LAS_model_2panel.pdf",
+    "results/las/LAS_gene_features.tsv",
+    "results/las/LAS_elasticnet_coefficients.tsv",
+    "results/las/LAS_enet_oof_predictions.tsv",
+    "results/las/LAS_model_summary.txt"
   )
 )
 
