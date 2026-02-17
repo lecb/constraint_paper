@@ -1,7 +1,6 @@
 # Constraint paper pipeline
-
-Reproducible analysis pipeline for the manuscript:  
-**“Constraint does not equal penetrance: population loss-of-function variation in ultra-constrained human genes.”**
+ 
+**Constraint does not equal penetrance: population loss-of-function variation in ultra-constrained human genes.**
 
 This repository contains the full R pipeline used to generate all main figures and tables for the manuscript.
 
